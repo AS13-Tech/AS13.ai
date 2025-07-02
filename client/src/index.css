@@ -8,3 +8,19 @@ body {
 }
 
 /* You can add other utility overrides here if needed */
+/* Hide scrollbar utility */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+/* Reusable input style */
+.auth-input {
+  @apply w-full px-4 py-3 rounded-xl bg-gray-800 text-white placeholder-gray-500 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+.oauth-btn {
+  @apply w-full py-3 text-center rounded-xl font-medium block text-sm transition;
+}

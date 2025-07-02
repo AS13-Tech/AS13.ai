@@ -1,14 +1,7 @@
-import { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Menu,
-  X,
-  Plus,
-  LogOut,
-  Settings,
-  Sparkles,
-  Sun,
-  Moon,
+  Menu, X, Plus, LogOut, Settings, Sparkles, Sun, Moon,
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 
@@ -22,15 +15,20 @@ export default function Sidebar({ dark, setDark }) {
   const handleNewChat = () => {
     localStorage.removeItem('messages');
     sessionStorage.removeItem('visited');
-    navigate('/chat');
+    navigate('/chat?new=true');
     setIsOpen(false);
   };
 
-  const handleLogout = () => {
-    logout();
-    alert('You have logged out.');
-    navigate('/login');
-    setIsOpen(false);
+  const handleLogout = async () => {
+    try {
+      await logout();
+      localStorage.clear();
+      sessionStorage.clear();
+      navigate('/login', { replace: true }); // ✅ prevent back nav to chat
+      setIsOpen(false);
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
   };
 
   const goToSettings = () => {
@@ -40,7 +38,7 @@ export default function Sidebar({ dark, setDark }) {
 
   return (
     <>
-      {/* Mobile Toggle Button */}
+      {/* Mobile menu toggle button */}
       <div className="md:hidden fixed top-4 left-4 z-50">
         <button
           onClick={toggleSidebar}
@@ -50,33 +48,22 @@ export default function Sidebar({ dark, setDark }) {
         </button>
       </div>
 
-      {/* Sidebar */}
+      {/* Sidebar content */}
       <div
-        className={`fixed md:static
-        top-0 left-0
-        h-full md:h-screen w-64
-        bg-white dark:bg-zinc-900 
-        border-r border-zinc-200 dark:border-zinc-800 
-        z-50 md:z-auto
-        transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        md:translate-x-0 md:block
-        p-3 md:p-4
-        overflow-hidden
-      `}
+        className={`fixed md:static top-16 left-0 h-[calc(100vh-4rem)] w-64 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 z-40 md:z-auto transform transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0 md:block overflow-y-auto`}
       >
-        <div className="h-full flex flex-col p-3 overflow-hidden">
-          {/* New Chat */}
+        <div className="h-full flex flex-col p-4">
           <button
             onClick={handleNewChat}
-            className="flex items-center gap-2 px-3 py-2 mb-3 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-sm font-medium transition"
+            className="flex items-center gap-2 px-3 py-2 mb-4 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-sm font-medium transition"
           >
             <Plus className="w-4 h-4" />
             New Chat
           </button>
 
-          {/* Chat History */}
-          <div className="mb-3 flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto mb-4">
             <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-2">
               Recent
             </p>
@@ -92,7 +79,6 @@ export default function Sidebar({ dark, setDark }) {
             </div>
           </div>
 
-          {/* Footer */}
           <div className="space-y-2 border-t border-zinc-200 dark:border-zinc-800 pt-3">
             <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-sm">
               <Sparkles className="w-4 h-4 text-yellow-400" />

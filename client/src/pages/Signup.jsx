@@ -1,82 +1,136 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useContext } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
+import logoText from '../icons/logo-text.svg';
+import googleIcon from '../icons/google.svg';
+import microsoftIcon from '../icons/microsoft.svg';
 import Header from '../components/Header';
-import logo from '../icons/logo-text.svg';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function Signup() {
-  const [form, setForm] = useState({ email: '', password: '', confirmPassword: '' });
+  const { login } = useContext(AuthContext);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const passwordValid = (pwd) => {
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{9,}$/;
+    return regex.test(pwd);
+  };
+
+  const handleSignup = async (e) => {
     e.preventDefault();
-
-    const { email, password, confirmPassword } = form;
-
-    if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
-      setError('All fields are required.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-
     setError('');
-    alert('Signup Successful!');
-    navigate('/chat');
+
+    if (!passwordValid(password)) {
+      setError(
+        'Password must be at least 9 characters and include uppercase, lowercase, number, and symbol.'
+      );
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:5001/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || 'Signup failed');
+        return;
+      }
+
+      login(data);
+      navigate('/chat');
+    } catch (err) {
+      setError('Signup failed. Please try again.');
+    }
+  };
+
+  const redirectToOAuth = (provider) => {
+    window.location.href = `http://localhost:5001/auth/${provider}?state=signup`;
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center px-4">
       <Header />
-      <main className="min-h-screen flex items-center justify-center px-4 bg-gray-950">
-        <div className="w-full max-w-md">
-          <div className="bg-black/30 backdrop-blur-md shadow-2xl rounded-3xl px-8 py-14 sm:px-10 border border-gray-700">
-            <div className="text-center mb-10">
-              <img src={logo} alt="AS13.ai Logo" className="mx-auto h-10 w-auto" />
-              <h2 className="mt-4 text-3xl font-bold text-white">Create your account</h2>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-gray-900 text-white placeholder-gray-400 border border-gray-700 focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-gray-900 text-white placeholder-gray-400 border border-gray-700 focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="password"
-                placeholder="Confirm Password"
-                value={form.confirmPassword}
-                onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-gray-900 text-white placeholder-gray-400 border border-gray-700 focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl text-white font-medium"
-              >
-                Sign up
-              </button>
-            </form>
-
-            <p className="mt-8 text-center text-sm text-gray-400">
-              Already have an account?{' '}
-              <a href="/login" className="text-blue-500 hover:text-blue-400">Log in</a>
-            </p>
-          </div>
+      <div className="bg-zinc-900 p-8 rounded-lg shadow-md w-full max-w-md mt-20">
+        <div className="flex justify-center mb-4">
+          <img src={logoText} alt="AS13.ai" className="h-10" />
         </div>
-      </main>
-    </>
+        <h2 className="text-center text-2xl font-bold mb-6">Create an account</h2>
+
+        {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
+
+        <form onSubmit={handleSignup} className="space-y-4">
+          <input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full px-4 py-2 rounded bg-zinc-800 border border-zinc-700 text-white"
+          />
+
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-2 rounded bg-zinc-800 border border-zinc-700 text-white pr-10"
+              minLength={9}
+              pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{9,}"
+              title="Must be at least 9 characters with uppercase, lowercase, number, and symbol."
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-400 hover:text-white"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded text-white font-semibold transition"
+          >
+            Sign Up
+          </button>
+        </form>
+
+        <div className="flex flex-col gap-2 mt-4">
+          <button
+            onClick={() => redirectToOAuth('google')}
+            className="flex items-center justify-center gap-3 w-full text-center bg-white text-black py-2 rounded-md hover:bg-gray-100 transition"
+          >
+            <img src={googleIcon} alt="Google" className="h-5" />
+            Sign up with Google
+          </button>
+          <button
+            onClick={() => redirectToOAuth('microsoft')}
+            className="flex items-center justify-center gap-3 w-full text-center bg-blue-700 text-white py-2 rounded-md hover:bg-blue-800 transition"
+          >
+            <img src={microsoftIcon} alt="Microsoft" className="h-5" />
+            Sign up with Microsoft
+          </button>
+        </div>
+
+        <p className="text-center text-sm mt-4">
+          Already have an account?{' '}
+          <Link to="/login" className="text-blue-400 hover:underline">
+            Log in
+          </Link>
+        </p>
+      </div>
+    </div>
   );
 }

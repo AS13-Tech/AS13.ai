@@ -1,17 +1,29 @@
 import { useState, useEffect, useRef } from 'react';
 import { marked } from 'marked';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import { useAuth } from '../context/AuthContext'; // ✅ Import AuthContext
 
 export default function Chat({ dark, setDark }) {
+  const { user, loading: authLoading } = useAuth(); // ✅ Access user and loading
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const location = useLocation();
   const navigate = useNavigate();
+
+  const isNewChat = new URLSearchParams(location.search).get('new') === 'true';
+
+  // ✅ Redirect to login if not authenticated
+  if (authLoading) return null;
+  if (!user) {
+    navigate('/login');
+    return null;
+  }
 
   useEffect(() => {
     const applyTheme = () => {
@@ -24,7 +36,7 @@ export default function Chat({ dark, setDark }) {
   }, []);
 
   useEffect(() => {
-    const isReload = !sessionStorage.getItem('visited');
+    const isReload = isNewChat || !sessionStorage.getItem('visited');
     sessionStorage.setItem('visited', 'true');
 
     if (isReload) {
@@ -36,7 +48,7 @@ export default function Chat({ dark, setDark }) {
     }
 
     setInitializing(false);
-  }, []);
+  }, [isNewChat]);
 
   useEffect(() => {
     localStorage.setItem('messages', JSON.stringify(messages));
@@ -80,28 +92,30 @@ export default function Chat({ dark, setDark }) {
   if (initializing) return null;
 
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
-      {/* Top Header */}
+    <div className="flex flex-col h-screen bg-white dark:bg-black text-black dark:text-white">
+      {/* Header */}
       <Header />
 
-      {/* Sidebar below Header (mobile = top, desktop = left) */}
-      <div className="flex flex-col md:flex-row flex-1">
-        <Sidebar dark={dark} setDark={setDark} />
+      {/* Body */}
+      <div className="flex flex-col md:flex-row flex-1 pt-16 overflow-hidden">
+        {/* Sidebar */}
+        <div className="w-full md:w-64 flex-shrink-0 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-800">
+          <Sidebar dark={dark} setDark={setDark} />
+        </div>
 
         {/* Chat Area */}
-        <div className="flex-1 px-4 sm:px-8 pt-4 md:pt-6">
-          <div className="max-w-3xl mx-auto w-full">
-            {/* Empty chat */}
+        <div className="flex-1 flex flex-col px-4 sm:px-8 py-6 overflow-hidden">
+          <div className="flex-1 overflow-y-auto pr-1">
             {messages.length === 0 ? (
-              <div className="text-center max-w-xl mx-auto py-16 sm:py-24">
-                <h1 className="text-4xl font-extrabold mb-2">
+              <div className="text-center max-w-xl mx-auto pt-12 pb-10">
+                <h1 className="text-4xl font-extrabold mb-3">
                   Where <span className="text-blue-400">ideas</span> begin
                 </h1>
-                <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm sm:text-base">
+                <p className="text-gray-600 dark:text-gray-400 mb-8 text-sm sm:text-base">
                   Bring ideas to life in seconds or get help with your projects.
                 </p>
 
-                <div className="relative">
+                <div className="relative mb-12">
                   <textarea
                     ref={inputRef}
                     rows={3}
@@ -122,20 +136,13 @@ export default function Chat({ dark, setDark }) {
                     className="absolute top-2.5 right-2.5 w-10 h-10 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 rounded-lg flex items-center justify-center transition shadow"
                     title="Send"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 4l16 8-16 8V4z" />
                     </svg>
                   </button>
                 </div>
 
-                <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {suggestedPrompts.map((prompt, index) => (
                     <button
                       key={index}
@@ -170,9 +177,9 @@ export default function Chat({ dark, setDark }) {
             )}
           </div>
 
-          {/* Input Area at Bottom */}
+          {/* Footer Input */}
           {messages.length > 0 && (
-            <div className="py-6 px-4 bg-white dark:bg-black transition-colors">
+            <div className="mt-4">
               <div className="max-w-2xl mx-auto relative">
                 <textarea
                   ref={inputRef}
@@ -194,14 +201,7 @@ export default function Chat({ dark, setDark }) {
                   className="absolute top-3 right-2 w-12 h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 rounded-lg flex items-center justify-center transition shadow"
                   title="Send"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 4l16 8-16 8V4z" />
                   </svg>
                 </button>
